@@ -98,6 +98,10 @@ app.post("/login", async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 });
+const cors = require("cors");
+app.use(cors({
+  origin:"*"
+}));
 
 mongoose.connect(process.env.MONGO_URl)
   .then(() => console.log("MongoDB ATlas  Connected "))
