@@ -58,7 +58,7 @@ app.post("/signup", async (req, res) => {
       confirmPassword
     });
 
-    await newUser.save();
+    
     await newUser.save();
     res.status(201).json({ message: "Signup successful", user: { _id: newUser._id, name, email, phone } });
 
@@ -98,7 +98,7 @@ app.post("/login", async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 });
-const cors = require("cors");
+
 app.use(cors({
   origin:"*"
 }));
