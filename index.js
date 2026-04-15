@@ -64,8 +64,7 @@ app.post("/signup", async (req, res) => {
 
   } catch (error) {
     console.error("Signup Error:", error);
-    res.status(500).json({ message: "Server error" });
-    
+    res.status(500).json({ message: "Server error" });  
   }
 });
 
@@ -99,8 +98,6 @@ app.post("/login", async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 });
-
-
 
 app.use(cors({
   origin: "https://frontend-a9cp-6bj9gj08s-abhig1720s-projects.vercel.app",
