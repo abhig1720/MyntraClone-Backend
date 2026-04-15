@@ -44,7 +44,7 @@ router.post('/placeOrder', async (req, res) => {
 
    const user = await usersmodel.findById(userId);
    if(user && user.email){
-    await sendEmail(user.email, "Order Confirmation", `Your order #${order._id.toString().slice(-8)} has been placed successfully! Total: ₹${totalAmount.toLocaleString()} And will be delivered to ${address.line1}, ${address.city}, ${address.state}, ${address.postal_code}`);
+    await sendEmail(user.email, "Order Confirmation", `Your order #${order._id.toString().slice(-8)} has been placed successfully! Total: ₹${totalAmount.toLocaleString()}`);
    }
 
 
