@@ -99,8 +99,12 @@ app.post("/login", async (req, res) => {
   }
 });
 
+const cors = require("cors");
+
 app.use(cors({
-  origin:"*"
+  origin: "https://frontend-a9cp-6bj9gj08s-abhig1720s-projects.vercel.app",
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  credentials: true
 }));
 
 mongoose.connect(process.env.MONGO_URl)
