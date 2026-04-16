@@ -4,6 +4,7 @@ const Order = require('./models/Order');
 const Cart = require('./models/Cart');
 const sendEmail = require('./SendEmail');
 const usersmodel = require('./models/users');
+const generateInvoice = require('./GenerateInvoice');
 
 
 router.post('/placeOrder', async (req, res) => {
@@ -44,7 +45,15 @@ router.post('/placeOrder', async (req, res) => {
 
    const user = await usersmodel.findById(userId);
    if(user && user.email){
-    await sendEmail(user.email, "Order Confirmation", `Your order #${order._id.toString().slice(-8)} has been placed successfully! Total: ₹${totalAmount.toLocaleString()}`);
+    const invoicePath = await generateInvoice(order);
+    await sendEmail(user.email, "Order Confirmation", `Your order #${order._id.toString().slice(-8)} has been placed successfully! Total: ₹${totalAmount.toLocaleString()}`
+  [
+    {
+    filename:"invoice.pdf",
+    path:invoicePath
+  }
+]
+);
    }
 
 

@@ -14,7 +14,13 @@ const sendEmail = async (to, subject, text) => {
             from:process.env.EMAIL_USER,
             to,
             subject,
-            text
+            text,
+            attachments:[
+                {
+                    filename:"invoice.pdf",
+                    path :invoicePath,
+                }
+            ]
         };
 
         await transporter.sendMail(mailOptions);
