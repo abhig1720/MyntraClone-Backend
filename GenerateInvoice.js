@@ -5,7 +5,7 @@ const path = require('path');
 
 const generateInvoice = async (order) => {
     return new Promise((resolve, reject) => {
-        const filePath = path.join(__dirname, 'invoices', `invoice_${order._id}.pdf`);
+        const filePath = path.join(__dirname, '../invoices', `invoice_${order._id}.pdf`);
         const doc = new PDFDocument();
         const stream = fs.createWriteStream(filePath);
 
@@ -16,7 +16,7 @@ const generateInvoice = async (order) => {
         doc.fontSize(20).text('Invoice', { align: 'center' });
         doc.text(`Order ID: ${order._id}`);
         doc.text(`Date: ${new Date().toLocaleDateString()}`);
-        doc.text(`Customer: ${order.name}`);
+        doc.text(`Customer: "User"}`);
         doc.moveDown();
 
 

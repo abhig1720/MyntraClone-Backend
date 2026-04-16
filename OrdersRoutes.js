@@ -54,7 +54,7 @@ router.post('/placeOrder', async (req, res) => {
   }
 ]
 );
-   }
+}
 
 
 
