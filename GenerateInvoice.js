@@ -10,7 +10,7 @@ const generateInvoice = async (order) => {
     { path: 'items.product', select: 'name price' }
   ]);
     return new Promise((resolve, reject) => {
-        const filePath = path.join(__dirname, '../invoices', `invoice_${order._id}.pdf`);
+        const filePath = path.join(__dirname, 'invoices', `invoice_${order._id}.pdf`);
         const doc = new PDFDocument();
         const stream = fs.createWriteStream(filePath);
 
