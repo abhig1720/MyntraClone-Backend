@@ -45,16 +45,12 @@ router.post('/placeOrder', async (req, res) => {
 
    const user = await usersmodel.findById(userId);
    if(user && user.email){
-    const invoicePath = await generateInvoice(order);
-    await sendEmail(user.email, "Order Confirmation", `Your order #${order._id.toString().slice(-8)} has been placed successfully! Total: ₹${totalAmount.toLocaleString()}`
-  [
-    {
-    filename:"invoice.pdf",
-    path:invoicePath
-  }
-]
-);
-}
+     const invoicePath = await generateInvoice(order);
+     const subject = "Order Confirmation";
+     const text = `Your order #${order._id.toString().slice(-8)} has been placed successfully! Total: ₹${totalAmount.toLocaleString()}`;
+     const attachments = [{ filename: `invoice_${order._id}.pdf`, path: invoicePath }];
+     await sendEmail(user.email, subject, text, attachments);
+   }
 
 
 
