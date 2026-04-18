@@ -45,20 +45,25 @@ router.post('/placeOrder', async (req, res) => {
 
    const user = await usersmodel.findById(userId);
    if(user && user.email){
-     let invoicePath = null;
-     try {
-       invoicePath = await generateInvoice(order);
-     } catch (invoiceErr) {
-       console.error('Invoice generation error:', invoiceErr);
-     }
+     let invoiceBuffer = null;
+try {
+  invoiceBuffer = await generateInvoice(order);
+} catch (invoiceErr) {
+  console.error('Invoice generation error:', invoiceErr);
+}
      const subject = "Order Confirmation";
      const text = `Your order #${order._id.toString().slice(-8)} has been placed successfully! Total: ₹${totalAmount.toLocaleString()}`;
-     if (invoicePath) {
-       const attachments = [{ filename: `invoice_${order._id}.pdf`, path: invoicePath }];
-       await sendEmail(user.email, subject, text, attachments);
-     } else {
-       await sendEmail(user.email, subject, text);
-     }
+   if (invoiceBuffer) {
+  const attachments = [
+    {
+      filename: `invoice_${order._id}.pdf`,
+      content: invoiceBuffer
+    }
+  ];
+  await sendEmail(user.email, subject, text, attachments);
+} else {
+  await sendEmail(user.email, subject, text);
+}
    }
 
 
