@@ -75,6 +75,7 @@ router.post("/add",upload.single("image"),async(req,res)=>{
         res.status(500).json({message:"Failed to delete product"});
     }
    });
+   
    router.put("/:id",upload.single("image"),async(req,res)=>{
     try{
         const UpdateData ={
