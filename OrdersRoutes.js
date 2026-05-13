@@ -94,21 +94,21 @@ router.get('/', async (req, res) => {
   }
 });
 router.get("/test-mail", async (req, res) => {
-  try{
+  try {
     await sendEmail(
-      "abhig172003@gmail.com",
-      "Test Email",
-      "This is a test email from Myntra backend"
+      process.env.TEST_MAIL_TO || "abhig172003@gmail.com",
+      "Test email",
+      "This is a test email from the Myntra clone backend."
     );
-  
-  res.send("Test email sent");
+    res.json({ ok: true, message: "Test email sent" });
+  } catch (error) {
+    console.error("Test email error:", error);
+    res.status(500).json({
+      ok: false,
+      message: "Error sending test email",
+      detail: error.message
+    });
   }
-
-
-catch(error){
-  console.error("Test email error:",error);
-  res.status(500).send("Error sending test email");
-}
 });
 
 router.get('/:id', async (req, res) => {

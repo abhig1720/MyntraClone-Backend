@@ -1,15 +1,23 @@
+const path = require("path");
+require("dotenv").config({ path: path.join(__dirname, ".env") });
+
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
-const path = require("path");
 const usersmodel = require("./models/users");
 const productsRoutes = require("./ProductsRoutes");
 const userRoutes = require("./UserRoutes");
 const cartRoutes = require("./CartRoutes");
 const ordersRoutes = require("./OrdersRoutes");
-const dotenv = require("dotenv");
-dotenv.config({ quiet: true });
 const paymentRoutes = require("./PaymentRoutes");
+
+if (process.env.RESEND_API_KEY) {
+  console.log("Email: Resend API key loaded from environment");
+} else {
+  console.warn(
+    "Email: RESEND_API_KEY missing — confirmation and status emails will not be sent. Add it in Backend/.env and on your host (e.g. Render). Optional: RESEND_FROM=\"Name <you@yourdomain.com>\" (must be a verified sender in Resend)."
+  );
+}
 
 const app = express();
 app.use(cors());
