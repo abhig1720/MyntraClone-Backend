@@ -6,7 +6,7 @@ const sendEmail = require('./SendEmail');
 const usersmodel = require('./models/users');
 const generateInvoice = require('./GenerateInvoice');
 
-// ── HTML email builders ───────────────────────────────────────
+// ── HTML Templates ────────────────────────────────────────────
 const orderConfirmationHtml = (user, order, totalAmount) => `
   <div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;border:1px solid #eee;border-radius:8px;overflow:hidden;">
     <div style="background:#282c3f;padding:20px 24px;">
@@ -38,7 +38,7 @@ const orderConfirmationHtml = (user, order, totalAmount) => `
         </tr>
         ${order.items.map((item, i) => `
           <tr style="background:${i % 2 === 0 ? '#fafafa' : '#fff'};">
-            <td>${item.product?.name || 'Product'}</td>
+            <td>${item.product?.name || item.name || 'Product'}</td>
             <td align="right">${item.quantity}</td>
             <td align="right">₹${(item.price * item.quantity).toLocaleString()}</td>
           </tr>
@@ -115,7 +115,6 @@ router.post('/placeOrder', async (req, res) => {
     if (paymentMethod === 'CARD' && !paymentIntentId) {
       return res.status(400).json({ message: "Payment Intent ID required for CARD" });
     }
-
     if (!userId || !address) {
       return res.status(400).json({ message: "userId and address required" });
     }
@@ -135,7 +134,7 @@ router.post('/placeOrder', async (req, res) => {
         product: item.product._id,
         quantity: item.quantity,
         price: item.product.price,
-        name: item.product.name,           // ✅ store name for invoice
+        name: item.product.name,       // ✅ store name for invoice
       })),
       address,
       paymentMethod: paymentMethod || 'COD',
@@ -155,12 +154,12 @@ router.post('/placeOrder', async (req, res) => {
           .populate('items.product', 'name price');
 
         let attachments = [];
-
         try {
           const invoiceBuffer = await generateInvoice(populatedOrder);
           attachments = [{
             filename: `invoice_${order._id}.pdf`,
-            content: invoiceBuffer.toString('base64'), // ✅ Resend needs base64
+            content: invoiceBuffer,          // ✅ Nodemailer uses raw buffer
+            contentType: 'application/pdf',
           }];
         } catch (invoiceErr) {
           console.error("Invoice generation error:", invoiceErr);
@@ -169,7 +168,7 @@ router.post('/placeOrder', async (req, res) => {
         await sendEmail(
           user.email,
           `Order Confirmed - #${order._id.toString().slice(-8).toUpperCase()}`,
-          orderConfirmationHtml(user, populatedOrder, totalAmount), // ✅ HTML
+          orderConfirmationHtml(user, populatedOrder, totalAmount),
           attachments
         );
 
@@ -179,7 +178,6 @@ router.post('/placeOrder', async (req, res) => {
     }
 
     await Cart.updateOne({ userId }, { items: [] });
-
     res.status(201).json({ message: "Order placed successfully", orderId: order._id });
 
   } catch (error) {
@@ -206,11 +204,11 @@ router.get('/', async (req, res) => {
 router.get('/test-mail', async (req, res) => {
   try {
     await sendEmail(
-      process.env.TEST_MAIL_TO || "abhig172003@gmail.com",
+      process.env.TEST_MAIL_TO || process.env.EMAIL_USER,
       "Test Email - Myntra Clone",
       `<div style="font-family:Arial,sans-serif;padding:20px;">
         <h2 style="color:#ff3f6c;">Myntra Clone</h2>
-        <p>This is a test email from the Myntra Clone backend.</p>
+        <p>This is a test email. Your email setup is working correctly! ✅</p>
       </div>`
     );
     res.json({ ok: true, message: "Test email sent" });
@@ -226,9 +224,7 @@ router.get('/:id', async (req, res) => {
     const order = await Order.findById(req.params.id)
       .populate('userId', 'name email phone')
       .populate('items.product', 'name price image');
-    if (!order) {
-      return res.status(404).json({ message: "Order not found" });
-    }
+    if (!order) return res.status(404).json({ message: "Order not found" });
     res.json(order);
   } catch (error) {
     console.error("Get order error:", error);
@@ -246,9 +242,7 @@ router.put('/:id/status', async (req, res) => {
     }
 
     const existing = await Order.findById(req.params.id);
-    if (!existing) {
-      return res.status(404).json({ message: "Order not found" });
-    }
+    if (!existing) return res.status(404).json({ message: "Order not found" });
 
     const previousStatus = existing.status;
 
@@ -266,7 +260,7 @@ router.put('/:id/status', async (req, res) => {
         await sendEmail(
           order.userId.email,
           `Order Update - #${order._id.toString().slice(-8).toUpperCase()} is now "${status}"`,
-          orderStatusHtml(order.userId, order)  // ✅ HTML
+          orderStatusHtml(order.userId, order)
         );
       } catch (emailErr) {
         console.error("Order status email error:", emailErr);
