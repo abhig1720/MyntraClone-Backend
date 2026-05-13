@@ -61,7 +61,9 @@ router.post('/placeOrder', async (req, res) => {
               content: invoiceBuffer
             }
           ];
-          await sendEmail(user.email, subject, text, null, attachments);
+          
+          console.log("EMAIL FUNCTION CALLED");
+          await sendEmail(user.email, subject, text, attachments);
         } else {
           await sendEmail(user.email, subject, text);
         }
