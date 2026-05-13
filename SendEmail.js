@@ -1,78 +1,27 @@
-const { Resend } = require("resend");
+const { Resend } = require('resend');
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const sendEmail = async (to, subject, html, attachments = []) => {
+  if (!process.env.RESEND_API_KEY) {
+    console.error("Missing RESEND_API_KEY in environment");
+    throw new Error("Email configuration error");
+  }
 
-function escapeHtml(str) {
-  return String(str)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
+  const resend = new Resend(process.env.RESEND_API_KEY);
 
-function textToHtml(text) {
-  return `
-    <div style="font-family: Arial, sans-serif; font-size:15px; line-height:1.6">
-      ${escapeHtml(text).replace(/\r?\n/g, "<br/>")}
-    </div>
-  `;
-}
-
-function mapAttachments(attachments = []) {
-  return attachments.map((att) => ({
-    filename: att.filename,
-    content: Buffer.isBuffer(att.content)
-      ? att.content.toString("base64")
-      : att.content,
-  }));
-}
-
-const sendEmail = async (
-  to,
-  subject,
-  text,
-  html = null,
-  attachments = []
-) => {
   try {
-    if (!process.env.RESEND_API_KEY) {
-      throw new Error("Missing RESEND_API_KEY");
-    }
-
-    const payload = {
-      from:
-        process.env.RESEND_FROM ||
-        "Myntra Clone <onboarding@resend.dev>",
-
-      to: Array.isArray(to) ? to : [to],
-
+    const data = await resend.emails.send({
+      from: "Myntra Clone <onboarding@resend.dev>",
+      to,
       subject,
-
-      html: html || textToHtml(text),
-
-      text: text || "",
-
-      attachments:
-        attachments.length > 0
-          ? mapAttachments(attachments)
-          : undefined,
-    };
-
-    console.log("Sending email to:", payload.to);
-
-    const response = await resend.emails.send(payload);
-
-    console.log("Email sent successfully:", response);
-
-    return response;
-
+      html,
+      attachments,
+    });
+    console.log("Email sent successfully:", data);
+    return data;
   } catch (error) {
-
-    console.error("EMAIL ERROR:");
-    console.error(error);
-
-    throw error;
+    console.error("Error sending email:", error);
+    throw new Error("Failed to send email");
   }
 };
 
-module.exports = sendEmail;
+module.exports = { sendEmail };
