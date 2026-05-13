@@ -1,138 +1,225 @@
 const PDFDocument = require('pdfkit');
 
-const generateInvoicePdf = (order, user) => {
+function generateInvoice(order) {
   return new Promise((resolve, reject) => {
-    try {
-      const doc = new PDFDocument({ margin: 50 });
-      const buffers = [];
+    const doc = new PDFDocument({ margin: 40 });
+    const chunks = [];
 
-      doc.on('data', buffers.push.bind(buffers));
-      doc.on('end', () => {
-        const pdfData = Buffer.concat(buffers);
-        resolve(pdfData);
-      });
+    doc.on('data', (chunk) => chunks.push(chunk));
+    doc.on('end', () => resolve(Buffer.concat(chunks)));
+    doc.on('error', reject);
 
-      // ── Header ──────────────────────────────────────────────
-      doc
-        .fillColor('#444444')
-        .fontSize(20)
-        .text('Bata Clone', 50, 57)
-        .fontSize(10)
-        .text('Bata Clone.', 200, 50, { align: 'right' })
-        .text('123 Main Street', 200, 65, { align: 'right' })
-        .text('New Delhi, India, 110001', 200, 80, { align: 'right' })
-        .text('GST No: 07AABCU9603R1ZX', 200, 95, { align: 'right' })
-        .moveDown();
+    const primary = '#ff3f6c';
+    const secondary = '#282c3f';
+    const textColor = '#333';
+    const lightGray = '#f5f6f7';
 
-      const generateHr = (y) => {
-        doc.strokeColor('#aaaaaa').lineWidth(1).moveTo(50, y).lineTo(550, y).stroke();
-      };
+    let currentY = 40;
 
-      generateHr(120);
+    // ── Logo / Header ─────────────────────────────────────────
+    doc
+      .fillColor(primary)
+      .fontSize(26)
+      .font('Helvetica-Bold')
+      .text('MYNTRA CLONE', 40, currentY);
 
-      // ── Customer Details ─────────────────────────────────────
-      const customerInformationTop = 140;
+    doc
+      .fillColor(textColor)
+      .fontSize(10)
+      .font('Helvetica')
+      .text('Fashion Street, Koramangala', 370, currentY)
+      .text('Bengaluru, KA 560034', 370, currentY + 12)
+      .text('India', 370, currentY + 24);
 
-      doc
-        .fontSize(16)
-        .text('Invoice', 50, customerInformationTop)
-        .fontSize(10)
-        .text('Invoice Number:', 50, customerInformationTop + 30)
-        .text(order._id.toString(), 150, customerInformationTop + 30)
-        .text('Invoice Date:', 50, customerInformationTop + 45)
-        .text(new Date().toLocaleDateString(), 150, customerInformationTop + 45)
-        .text('Total Amount:', 50, customerInformationTop + 60)
-        .text(`Rs. ${order.totalAmount}`, 150, customerInformationTop + 60)  // ✅ fixed backtick
-        .text('Billed To:', 300, customerInformationTop + 30)
-        .text(user.name || 'Customer', 300, customerInformationTop + 45)
-        .text(user.email || '', 300, customerInformationTop + 60)
-        .text(user.phone || '', 300, customerInformationTop + 75)
-        .text(order.address || '', 300, customerInformationTop + 90)
-        .moveDown();
+    currentY += 45;
+    doc.moveTo(40, currentY).lineTo(555, currentY).stroke('#ccc');
+    currentY += 15;
 
-      generateHr(250);
+    // ── Title ─────────────────────────────────────────────────
+    doc
+      .fontSize(18)
+      .font('Helvetica-Bold')
+      .fillColor(secondary)
+      .text('OFFICIAL RECEIPT', 40, currentY);
 
-      // ── Invoice Table Header ──────────────────────────────────
-      const invoiceTableTop = 270;
+    currentY += 28;
 
-      doc.font('Helvetica-Bold');
-      doc.text('Item', 50, invoiceTableTop);
-      doc.text('Description', 150, invoiceTableTop);
-      doc.text('Unit Cost', 280, invoiceTableTop, { width: 90, align: 'right' });
-      doc.text('Quantity', 370, invoiceTableTop, { width: 90, align: 'right' });
-      doc.text('Line Total', 460, invoiceTableTop, { width: 90, align: 'right' });
-      doc.font('Helvetica');
+    // ── Left: Invoice Details ─────────────────────────────────
+    doc.fontSize(10).font('Helvetica');
 
-      generateHr(290);
+    const leftX = 40;
+    let leftY = currentY;
 
-      // ── GST Calculation ───────────────────────────────────────
-      const GST_RATE = 0.18;
-      const totalAmount = order.totalAmount;
-      const subtotal = totalAmount / (1 + GST_RATE);
-      const gstAmount = totalAmount - subtotal;
+    const invoiceNo = `MYN-${new Date().getFullYear()}-${order._id.toString().substring(0, 6).toUpperCase()}`;
 
-      // ── Invoice Rows ──────────────────────────────────────────
-      let y = 310;
+    drawKeyValue(doc, leftX, leftY, 'Invoice #:', invoiceNo); leftY += 15;
+    drawKeyValue(doc, leftX, leftY, 'Order ID:', order._id); leftY += 15;
+    drawKeyValue(doc, leftX, leftY, 'Date:', new Date().toLocaleDateString('en-IN')); leftY += 15;
+    drawKeyValue(doc, leftX, leftY, 'Payment:', order.paymentMethod || 'Online'); leftY += 15;
+    drawKeyValue(doc, leftX, leftY, 'Status:', order.status || 'Confirmed');
 
-      order.items.forEach((item, index) => {
-        // ✅ Add new page if content exceeds page height
-        if (y > 680) {
-          doc.addPage();
-          y = 50;
-        }
+    // ── Right: Shipping Details ───────────────────────────────
+    const rightX = 300;
+    let rightY = currentY;
 
-        const price = item.price || item.product?.price || 0;
-        const qty = item.quantity || 1;
-        const lineTotal = price * qty;
-        const name = item.product?.name
-          ? item.product.name.substring(0, 20)
-          : 'Product';
+    drawKeyValue(doc, rightX, rightY, 'Shipping:', 'Standard Delivery'); rightY += 15;
+    drawKeyValue(doc, rightX, rightY, 'Estimated:', '4–7 Business Days'); rightY += 15;
+    drawKeyValue(doc, rightX, rightY, 'Shipping Cost:', 'Free'); rightY += 20;
+    drawKeyValue(doc, rightX, rightY, 'GSTIN:', '29AABCM1234D1ZP'); rightY += 15;
+    drawKeyValue(doc, rightX, rightY, 'Support:', 'support@myntraclone.com'); rightY += 15;
+    drawKeyValue(doc, rightX, rightY, 'Phone:', '+91 80-4567-8900');
 
-        doc.fontSize(10);
-        doc.text((index + 1).toString(), 50, y);
-        doc.text(name, 150, y);
-        doc.text(`Rs. ${price}`, 280, y, { width: 90, align: 'right' });   // ✅ fixed
-        doc.text(qty.toString(), 370, y, { width: 90, align: 'right' });
-        doc.text(`Rs. ${lineTotal}`, 460, y, { width: 90, align: 'right' });   // ✅ fixed
+    // ── Billing Address ───────────────────────────────────────
+    currentY = Math.max(leftY, rightY) + 20;
 
-        generateHr(y + 20);
-        y += 30;
-      });
+    doc.moveTo(40, currentY).lineTo(555, currentY).stroke('#ccc');
+    currentY += 12;
 
-      // ── Totals ────────────────────────────────────────────────
-      y += 10;
+    doc.font('Helvetica-Bold').fillColor(secondary).text('Billed To:', 40, currentY);
+    currentY += 15;
 
-      doc.font('Helvetica-Bold');
-      doc.text('Subtotal:', 370, y, { width: 90, align: 'right' });
-      doc.font('Helvetica');
-      doc.text(`Rs. ${subtotal.toFixed(2)}`, 460, y, { width: 90, align: 'right' }); // ✅ fixed
+    const addr = order.shippingAddress || {};
 
-      doc.font('Helvetica-Bold');
-      doc.text('GST (18%):', 370, y + 20, { width: 90, align: 'right' });
-      doc.font('Helvetica');
-      doc.text(`Rs. ${gstAmount.toFixed(2)}`, 460, y + 20, { width: 90, align: 'right' }); // ✅ fixed
+    // ✅ Fallback to order.address string if shippingAddress object is missing
+    const addressLine = addr.addressLine || (typeof order.address === 'string' ? order.address : '');
+    const cityLine = addr.city
+      ? `${addr.city}, ${addr.state || ''} ${addr.zipCode || ''}`.trim()
+      : '';
 
-      doc.font('Helvetica-Bold');
-      doc.text('Total:', 370, y + 40, { width: 90, align: 'right' });
-      doc.font('Helvetica');
-      doc.text(`Rs. ${totalAmount.toFixed(2)}`, 460, y + 40, { width: 90, align: 'right' }); // ✅ fixed
+    doc
+      .font('Helvetica')
+      .fillColor(textColor)
+      .text(addr.fullName || order.userName || 'N/A', 40, currentY)
+      .text(addressLine, 40, currentY + 12)
+      .text(cityLine, 40, currentY + 24);
 
-      generateHr(y + 60);
+    currentY += 52;
 
-      // ── Footer ────────────────────────────────────────────────
-      // ✅ Dynamic position instead of hardcoded 700
-      doc.fontSize(10).text(
-        'Thank you for shopping with Bata Clone.',
-        50,
-        y + 80,
-        { align: 'center', width: 500 }
+    // ── Table Header ──────────────────────────────────────────
+    const tableTop = currentY;
+
+    doc.rect(40, tableTop, 515, 22).fill(secondary);
+
+    doc
+      .fillColor('#ffffff')
+      .font('Helvetica-Bold')
+      .fontSize(10);
+
+    tableRow(doc, tableTop + 6, 'Item', 'Qty', 'Price', 'Total');
+
+    currentY = tableTop + 28;
+
+    // ── Table Rows ────────────────────────────────────────────
+    doc.fillColor(textColor).font('Helvetica');
+
+    order.items.forEach((item, i) => {
+      // ✅ Page overflow guard
+      if (currentY > 680) {
+        doc.addPage();
+        currentY = 40;
+      }
+
+      const rowBg = i % 2 === 0 ? '#fafafa' : '#ffffff';
+      doc.rect(40, currentY - 5, 515, 22).fill(rowBg).fillColor(textColor);
+
+      // ✅ Fixed: use item.product?.name (populated) with fallback
+      const productName = (
+        item.product?.name ||
+        item.name ||
+        `Product ${i + 1}`
+      ).substring(0, 40);
+
+      const price = Number(item.price) || 0;
+      const qty = Number(item.quantity) || 1;
+      const lineTotal = price * qty;
+
+      tableRow(
+        doc,
+        currentY,
+        productName,
+        qty,
+        `\u20B9${price.toFixed(2)}`,
+        `\u20B9${lineTotal.toFixed(2)}`
       );
 
-      doc.end();
-    } catch (error) {
-      reject(error);
-    }
-  });
-};
+      currentY += 22;
+    });
 
-module.exports = generateInvoicePdf;
+    // ── Totals ────────────────────────────────────────────────
+    currentY += 12;
+    doc.moveTo(40, currentY).lineTo(555, currentY).stroke('#ccc');
+    currentY += 12;
+
+    const subtotal = Number(order.totalAmount) || 0;
+    const gstRate = 0.12;
+    const gst = subtotal * gstRate;
+    const grandTotal = subtotal + gst;
+
+    summaryRow(doc, currentY, 'Subtotal:', subtotal); currentY += 15;
+    summaryRow(doc, currentY, 'GST (12%):', gst); currentY += 15;
+    summaryRow(doc, currentY, 'Shipping:', 0); currentY += 20;
+
+    // Grand Total highlight
+    doc.rect(345, currentY - 5, 210, 26).fill(lightGray);
+
+    doc
+      .fillColor(primary)
+      .font('Helvetica-Bold')
+      .fontSize(11)
+      .text('Grand Total:', 355, currentY)
+      .text(`\u20B9${grandTotal.toFixed(2)}`, 450, currentY, { align: 'right', width: 95 });
+
+    // ── Footer ────────────────────────────────────────────────
+    currentY += 55;
+
+    doc.moveTo(40, currentY).lineTo(555, currentY).stroke('#eee');
+    currentY += 10;
+
+    doc
+      .fontSize(9)
+      .fillColor('#888')
+      .font('Helvetica')
+      .text(
+        'Thank you for shopping with Myntra Clone! Easy returns within 30 days.',
+        40, currentY, { align: 'center', width: 515 }
+      );
+
+    currentY += 12;
+
+    doc.text(
+      'This is a computer-generated invoice and does not require a signature.',
+      40, currentY, { align: 'center', width: 515 }
+    );
+
+    doc.end();
+  });
+}
+
+// ── Helpers ───────────────────────────────────────────────────
+function drawKeyValue(doc, x, y, key, value) {
+  doc.font('Helvetica-Bold').fillColor('#555').text(key, x, y);
+  doc.font('Helvetica').fillColor('#333').text(String(value), x + 115, y);
+}
+
+function tableRow(doc, y, item, qty, price, total) {
+  doc
+    .fontSize(10)
+    .text(item, 45, y, { width: 250 })
+    .text(qty, 300, y, { width: 50, align: 'right' })
+    .text(price, 375, y, { width: 75, align: 'right' })
+    .text(total, 455, y, { width: 85, align: 'right' });
+}
+
+function summaryRow(doc, y, label, value) {
+  doc
+    .font('Helvetica')
+    .fillColor('#555')
+    .fontSize(10)
+    .text(label, 355, y)
+    .text(
+      value === 0 ? 'FREE' : `\u20B9${value.toFixed(2)}`,
+      450, y, { align: 'right', width: 95 }
+    );
+}
+
+module.exports = generateInvoice;
