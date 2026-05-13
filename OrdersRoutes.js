@@ -43,28 +43,32 @@ router.post('/placeOrder', async (req, res) => {
 
     await order.save();
 
-   const user = await usersmodel.findById(userId);
-   if(user && user.email){
-     let invoiceBuffer = null;
-try {
-  invoiceBuffer = await generateInvoice(order);
-} catch (invoiceErr) {
-  console.error('Invoice generation error:', invoiceErr);
-}
-     const subject = "Order Confirmation";
-     const text = `Your order #${order._id.toString().slice(-8)} has been placed successfully! Total: ₹${totalAmount.toLocaleString()}`;
-   if (invoiceBuffer) {
-  const attachments = [
-    {
-      filename: `invoice_${order._id}.pdf`,
-      content: invoiceBuffer
+    const user = await usersmodel.findById(userId);
+    if (user && user.email) {
+      const subject = "Order confirmation";
+      const text = `Hi${user.name ? ` ${user.name}` : ""},\n\nThank you for your order. Your order #${order._id.toString().slice(-8)} has been placed successfully.\n\nTotal: ₹${totalAmount.toLocaleString()}\nPayment: ${order.paymentMethod || "COD"}\n\nWe will notify you when the order status changes.\n`;
+      try {
+        let invoiceBuffer = null;
+        try {
+          invoiceBuffer = await generateInvoice(order);
+        } catch (invoiceErr) {
+          console.error("Invoice generation error:", invoiceErr);
+        }
+        if (invoiceBuffer) {
+          const attachments = [
+            {
+              filename: `invoice_${order._id}.pdf`,
+              content: invoiceBuffer
+            }
+          ];
+          await sendEmail(user.email, subject, text, null, attachments);
+        } else {
+          await sendEmail(user.email, subject, text);
+        }
+      } catch (emailErr) {
+        console.error("Order confirmation email error:", emailErr);
+      }
     }
-  ];
-  await sendEmail(user.email, subject, text, attachments);
-} else {
-  await sendEmail(user.email, subject, text);
-}
-   }
 
 
 
@@ -129,6 +133,12 @@ router.put('/:id/status', async (req, res) => {
       return res.status(400).json({ message: "Invalid status" });
     }
 
+    const existing = await Order.findById(req.params.id);
+    if (!existing) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+    const previousStatus = existing.status;
+
     const order = await Order.findByIdAndUpdate(
       req.params.id,
       { status },
@@ -136,14 +146,18 @@ router.put('/:id/status', async (req, res) => {
     ).populate('userId', 'name email phone')
      .populate('items.product', 'name price image');
 
-    if (!order) {
-      return res.status(404).json({ message: "Order not found" });
+    const statusChanged = previousStatus !== status;
+    if (statusChanged && order.userId && order.userId.email) {
+      const customerName = order.userId.name || "there";
+      const subject = "Your order status was updated";
+      const text = `Hi ${customerName},\n\nYour order #${order._id.toString().slice(-8)} status is now: ${status}.\n\nThank you for shopping with us.\n`;
+
+      try {
+        await sendEmail(order.userId.email, subject, text);
+      } catch (emailErr) {
+        console.error("Order status email error:", emailErr);
+      }
     }
-
-   if(order.userId && order.userId.email){
-    await sendEmail(order.userId.email, "Order status updated", `your orders is now: ${status}`);
-
-   }
 
     res.json({ message: "Status updated", order });
   } catch (error) {
