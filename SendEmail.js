@@ -1,32 +1,30 @@
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 const sendEmail = async (to, subject, html, attachments = []) => {
-  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-    throw new Error("Missing EMAIL_USER or EMAIL_PASS in environment variables");
+  if (!process.env.RESEND_API_KEY) {
+    throw new Error("Missing RESEND_API_KEY");
   }
 
-  const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS,
-    },
-  });
+  // ✅ In development, override recipient to your own email
+  const recipient = process.env.TEST_OVERRIDE_EMAIL || to;
 
-  const mailOptions = {
-    from: `Myntra Clone <${process.env.EMAIL_USER}>`,
-    to,
-    subject,
-    html,
-  };
+  try {
+    const data = await resend.emails.send({
+      from: "Myntra Clone <onboarding@resend.dev>",
+      to: recipient,
+      subject,
+      html,
+      ...(attachments.length > 0 && { attachments }),
+    });
 
-  // ✅ Only add attachments if provided
-  if (attachments.length > 0) {
-    mailOptions.attachments = attachments;
+    console.log(`Email sent to ${recipient}:`, data);
+    return data;
+
+  } catch (error) {
+    console.error("Error sending email:", error);
+    throw new Error("Failed to send email");
   }
-
-  await transporter.sendMail(mailOptions);
-  console.log(`Email sent successfully to ${to}`);
 };
 
 module.exports = sendEmail;

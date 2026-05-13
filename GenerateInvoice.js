@@ -79,6 +79,8 @@ function generateInvoice(order) {
     currentY += 15;
 
     const addr = order.shippingAddress || {};
+
+    // ✅ Fallback to order.address string if shippingAddress object is missing
     const addressLine = addr.addressLine || (typeof order.address === 'string' ? order.address : '');
     const cityLine = addr.city
       ? `${addr.city}, ${addr.state || ''} ${addr.zipCode || ''}`.trim()
@@ -97,7 +99,12 @@ function generateInvoice(order) {
     const tableTop = currentY;
 
     doc.rect(40, tableTop, 515, 22).fill(secondary);
-    doc.fillColor('#ffffff').font('Helvetica-Bold').fontSize(10);
+
+    doc
+      .fillColor('#ffffff')
+      .font('Helvetica-Bold')
+      .fontSize(10);
+
     tableRow(doc, tableTop + 6, 'Item', 'Qty', 'Price', 'Total');
 
     currentY = tableTop + 28;
@@ -115,7 +122,7 @@ function generateInvoice(order) {
       const rowBg = i % 2 === 0 ? '#fafafa' : '#ffffff';
       doc.rect(40, currentY - 5, 515, 22).fill(rowBg).fillColor(textColor);
 
-      // ✅ Support both populated and plain name
+      // ✅ Fixed: use item.product?.name (populated) with fallback
       const productName = (
         item.product?.name ||
         item.name ||
@@ -152,8 +159,9 @@ function generateInvoice(order) {
     summaryRow(doc, currentY, 'GST (12%):', gst); currentY += 15;
     summaryRow(doc, currentY, 'Shipping:', 0); currentY += 20;
 
-    // Grand Total highlight box
+    // Grand Total highlight
     doc.rect(345, currentY - 5, 210, 26).fill(lightGray);
+
     doc
       .fillColor(primary)
       .font('Helvetica-Bold')
@@ -163,6 +171,7 @@ function generateInvoice(order) {
 
     // ── Footer ────────────────────────────────────────────────
     currentY += 55;
+
     doc.moveTo(40, currentY).lineTo(555, currentY).stroke('#eee');
     currentY += 10;
 
@@ -176,6 +185,7 @@ function generateInvoice(order) {
       );
 
     currentY += 12;
+
     doc.text(
       'This is a computer-generated invoice and does not require a signature.',
       40, currentY, { align: 'center', width: 515 }
