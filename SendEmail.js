@@ -1,33 +1,70 @@
-const { Resend } = require('resend');
+const sgMail = require('@sendgrid/mail');
+const nodemailer = require('nodemailer');
 
-const sendEmail = async (to, subject, html, attachments = []) => {
+// Set API Key if available
+if (process.env.SENDGRID_API_KEY) {
+  sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+}
 
-  if (!process.env.RESEND_API_KEY) {
-    console.error("Missing RESEND_API_KEY in environment");
-    throw new Error("Email configuration error");
-  }
-
-  const resend = new Resend(process.env.RESEND_API_KEY);
-
+const sendEmail = async (to, subject, text, attachmentBuffer = null) => {
   try {
+    if (process.env.SENDGRID_API_KEY) {
+      // Use SendGrid if API key is provided
+      const msg = {
+        to,
+        from: 'abhig172003@gmail.com', // Replace with your verified SendGrid sender email
+        subject,
+        text,
+      };
 
-    const data = await resend.emails.send({
-      from: "Myntra Clone <onboarding@resend.dev>",
-      to,
-      subject,
-      html,
-      attachments,
-    });
+      if (attachmentBuffer) {
+        msg.attachments = [
+          {
+            content: attachmentBuffer.toString('base64'),
+            filename: 'invoice.pdf',
+            type: 'application/pdf',
+            disposition: 'attachment',
+          },
+        ];
+      }
 
-    console.log("RESEND RESPONSE:", data);
+      await sgMail.send(msg);
+      console.log('Email sent successfully using SendGrid');
+    } else {
+      // Fallback to Nodemailer
+      const transporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: {
+          user: 'abhig172003@gmail.com',
+          pass: 'xbefgkkmppyylvim',
+        },
+      });
 
-    return data;
+      const mailOptions = {
+        from: 'abhig172003@gmail.com',
+        to,
+        subject,
+        text,
+      };
 
+      if (attachmentBuffer) {
+        mailOptions.attachments = [
+          {
+            filename: 'invoice.pdf',
+            content: attachmentBuffer,
+            contentType: 'application/pdf',
+          },
+        ];
+      }
+
+      await transporter.sendMail(mailOptions);
+      console.log('Email sent successfully using Nodemailer');
+    }
   } catch (error) {
-
-    console.error("Error sending email:", error);
-
-    throw new Error("Failed to send email");
+    console.error('Error sending email:', error);
+    if (error.response) {
+      console.error(error.response.body);
+    }
   }
 };
 
