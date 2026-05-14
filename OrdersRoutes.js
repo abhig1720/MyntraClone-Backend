@@ -45,8 +45,54 @@ router.post('/placeOrder', async (req, res) => {
 
     const user = await usersmodel.findById(userId);
     if (user && user.email) {
-      const subject = "Order confirmation";
-      const text = `Hi${user.name ? ` ${user.name}` : ""},\n\nThank you for your order. Your order #${order._id.toString().slice(-8)} has been placed successfully.\n\nTotal: ₹${totalAmount.toLocaleString()}\nPayment: ${order.paymentMethod || "COD"}\n\nWe will notify you when the order status changes.\n`;
+      const subject = "Order Confirmation - Myntra Clone";
+      const htmlContent = `
+        <div style="font-family: 'Inter', Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.05); border: 1px solid #eaeaea;">
+          <div style="background: linear-gradient(135deg, #ff3f6c, #ff6b8b); padding: 30px 20px; text-align: center;">
+            <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: 700; letter-spacing: 1px;">MYNTRA CLONE</h1>
+            <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0; font-size: 16px;">Your order has been confirmed!</p>
+          </div>
+          
+          <div style="padding: 40px 30px;">
+            <p style="font-size: 16px; color: #333333; line-height: 1.6; margin-bottom: 25px;">
+              Hi <strong style="color: #111;">${user.name || "there"}</strong>,
+            </p>
+            <p style="font-size: 16px; color: #555555; line-height: 1.6; margin-bottom: 30px;">
+              Thank you for shopping with us! We're thrilled to confirm your recent order. We're getting everything ready, and we'll let you know as soon as it ships.
+            </p>
+            
+            <div style="background-color: #f8f9fa; border-radius: 8px; padding: 25px; margin-bottom: 30px; border-left: 4px solid #ff3f6c;">
+              <h3 style="margin-top: 0; color: #111; font-size: 18px; margin-bottom: 15px;">Order Summary</h3>
+              <table style="width: 100%; border-collapse: collapse;">
+                <tr>
+                  <td style="padding: 8px 0; color: #666;">Order ID:</td>
+                  <td style="padding: 8px 0; color: #111; font-weight: 600; text-align: right;">#${order._id.toString().slice(-8).toUpperCase()}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px 0; color: #666;">Total Amount:</td>
+                  <td style="padding: 8px 0; color: #ff3f6c; font-weight: 700; text-align: right; font-size: 18px;">₹${totalAmount.toLocaleString()}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px 0; color: #666; border-bottom: none;">Payment Method:</td>
+                  <td style="padding: 8px 0; color: #111; font-weight: 600; text-align: right; border-bottom: none;">${order.paymentMethod || "COD"}</td>
+                </tr>
+              </table>
+            </div>
+
+            <p style="font-size: 14px; color: #777777; line-height: 1.6; text-align: center; margin-top: 40px;">
+              Your invoice is attached to this email.<br/>
+              If you have any questions, simply reply to this email.
+            </p>
+          </div>
+          
+          <div style="background-color: #fcfcfc; padding: 20px; text-align: center; border-top: 1px solid #eaeaea;">
+            <p style="font-size: 12px; color: #999999; margin: 0;">
+              © ${new Date().getFullYear()} Myntra Clone. All rights reserved.<br/>
+              Fashion Street, Koramangala, Bengaluru
+            </p>
+          </div>
+        </div>
+      `;
       try {
         let invoiceBuffer = null;
         try {
@@ -63,9 +109,9 @@ router.post('/placeOrder', async (req, res) => {
           ];
 
           console.log("EMAIL FUNCTION CALLED");
-          await sendEmail(user.email, subject, text, attachments);
+          await sendEmail(user.email, subject, htmlContent, attachments);
         } else {
-          await sendEmail(user.email, subject, text);
+          await sendEmail(user.email, subject, htmlContent);
         }
       } catch (emailErr) {
         console.error("Order confirmation email error:", emailErr);
@@ -151,11 +197,53 @@ router.put('/:id/status', async (req, res) => {
     const statusChanged = previousStatus !== status;
     if (statusChanged && order.userId && order.userId.email) {
       const customerName = order.userId.name || "there";
-      const subject = "Your order status was updated";
-      const text = `Hi ${customerName},\n\nYour order #${order._id.toString().slice(-8)} status is now: ${status}.\n\nThank you for shopping with us.\n`;
+      const subject = `Update on your Order #${order._id.toString().slice(-8).toUpperCase()} - Myntra Clone`;
+      
+      const statusColors = {
+        'pending': '#f59e0b',
+        'confirmed': '#3b82f6',
+        'shipped': '#8b5cf6',
+        'delivered': '#10b981',
+        'cancelled': '#ef4444'
+      };
+      const statusColor = statusColors[status] || '#ff3f6c';
+
+      const htmlContent = `
+        <div style="font-family: 'Inter', Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.05); border: 1px solid #eaeaea;">
+          <div style="background: linear-gradient(135deg, ${statusColor}, ${statusColor}dd); padding: 30px 20px; text-align: center;">
+            <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: 700; letter-spacing: 1px;">MYNTRA CLONE</h1>
+            <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0; font-size: 16px;">Order Status Update</p>
+          </div>
+          
+          <div style="padding: 40px 30px;">
+            <p style="font-size: 16px; color: #333333; line-height: 1.6; margin-bottom: 25px;">
+              Hi <strong style="color: #111;">${customerName}</strong>,
+            </p>
+            <p style="font-size: 16px; color: #555555; line-height: 1.6; margin-bottom: 30px;">
+              There is an update regarding your order <strong>#${order._id.toString().slice(-8).toUpperCase()}</strong>.
+            </p>
+            
+            <div style="background-color: #f8f9fa; border-radius: 8px; padding: 25px; margin-bottom: 30px; border-left: 4px solid ${statusColor}; text-align: center;">
+              <p style="margin: 0; color: #666; font-size: 14px; text-transform: uppercase; letter-spacing: 1px;">Current Status</p>
+              <h2 style="margin: 10px 0 0 0; color: ${statusColor}; font-size: 28px; text-transform: capitalize;">${status}</h2>
+            </div>
+
+            <p style="font-size: 14px; color: #777777; line-height: 1.6; text-align: center; margin-top: 40px;">
+              Thank you for shopping with us!<br/>
+              If you have any questions, simply reply to this email.
+            </p>
+          </div>
+          
+          <div style="background-color: #fcfcfc; padding: 20px; text-align: center; border-top: 1px solid #eaeaea;">
+            <p style="font-size: 12px; color: #999999; margin: 0;">
+              © ${new Date().getFullYear()} Myntra Clone. All rights reserved.
+            </p>
+          </div>
+        </div>
+      `;
 
       try {
-        await sendEmail(order.userId.email, subject, text);
+        await sendEmail(order.userId.email, subject, htmlContent);
       } catch (emailErr) {
         console.error("Order status email error:", emailErr);
       }
