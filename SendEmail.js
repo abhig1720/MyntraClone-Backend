@@ -16,8 +16,11 @@ const sendEmail = async (to, subject, html, attachments = []) => {
       html,
       attachments,
     });
+
     console.log("Email sent successfully:", data);
+
     return data;
+
   } catch (error) {
     console.error("Error sending email:", error);
     throw new Error("Failed to send email");
