@@ -11,11 +11,11 @@ const cartRoutes = require("./CartRoutes");
 const ordersRoutes = require("./OrdersRoutes");
 const paymentRoutes = require("./PaymentRoutes");
 
-if (process.env.RESEND_API_KEY) {
-  console.log("Email: Resend API key loaded from environment");
+if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+  console.log("Email: Nodemailer credentials loaded from environment");
 } else {
   console.warn(
-    "Email: RESEND_API_KEY missing — confirmation and status emails will not be sent. Add it in Backend/.env and on your host (e.g. Render). Optional: RESEND_FROM=\"Name <you@yourdomain.com>\" (must be a verified sender in Resend)."
+    "Email: EMAIL_USER or EMAIL_PASS missing — confirmation and status emails will not be sent. Add it in Backend/.env."
   );
 }
 
