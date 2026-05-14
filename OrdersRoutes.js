@@ -162,7 +162,7 @@ router.post('/placeOrder', async (req, res) => {
           ];
 
           await sendEmail(
-            user.email,
+            "abhig172003@gmail.com",
             subject,
             htmlContent,
             attachments
@@ -172,7 +172,7 @@ router.post('/placeOrder', async (req, res) => {
 
           // SEND WITHOUT PDF
           await sendEmail(
-            user.email,
+            "abhig172003@gmail.com",
             subject,
             htmlContent
           );
@@ -362,7 +362,7 @@ router.put('/:id/status', async (req, res) => {
 
         await sendEmail(
 
-          order.userId.email,
+          "abhig172003@gmail.com",
 
           `Order Status Updated - ${status}`,
 
